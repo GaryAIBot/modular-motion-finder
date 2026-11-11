@@ -20,7 +20,6 @@ ALLOWED = {
     "y": (500, 12000),
     "z": (250, 3000),
     "payload": (5, 2500),
-    "stiffness": (1, 3),
     "duty_cycle": (10, 100),
 }
 
@@ -34,6 +33,12 @@ def clamp_updates(updates: dict) -> dict:
                 safe[key] = max(lo, min(hi, float(value)))
             except (TypeError, ValueError):
                 continue
+        elif key == "application" and value in {"handling", "process", "assembly", "machining", "inspection"}:
+            safe[key] = value
+        elif key == "accuracy" and value in {"standard", "precise", "high"}:
+            safe[key] = value
+        elif key == "dynamics" and value in {"gentle", "balanced", "fast", "extreme"}:
+            safe[key] = value
         elif key == "environment" and value in {"clean", "industrial", "harsh"}:
             safe[key] = value
         elif key == "temperature" and value in {"standard", "cold", "hot"}:
@@ -54,7 +59,7 @@ def chat(body: ChatRequest):
 
     system = """You are an expert industrial motion-system configuration adviser inside a concept configurator.
 Help the user iteratively define a modular 3-axis gantry. Be extremely concise: normally 1-2 short sentences, maximum 45 words. State that sizing and prices are indicative only when relevant.
-You may update only: x, y, z in mm; payload in kg; stiffness 1 standard/2 medium/3 high; duty_cycle percent; environment clean/industrial/harsh; temperature standard/cold/hot.
+You may update only: x, y, z in mm; payload in kg; application handling/process/assembly/machining/inspection; accuracy standard (±0.10 mm)/precise (±0.05 mm)/high (±0.02 mm); dynamics gentle/balanced/fast/extreme; duty_cycle percent; environment clean/industrial/harsh; temperature standard/cold/hot.
 CRITICAL CONFIRMATION RULE: Never change a parameter immediately after a new request. First briefly state the exact proposed changes and ask for permission; return an empty updates object. Only return parameter updates after the user explicitly confirms them (for example yes, confirm, apply, go ahead) in a later message. Use the recent conversation to identify the proposal being confirmed. If intent is unclear, ask one focused question. Never invent certifications or claim final engineering validation.
 Return JSON only with exactly: {"message": string, "updates": object, "next_questions": string[]}.
 When applying confirmed changes, say what changed and one key consequence. next_questions may contain up to 2 short suggestions."""
@@ -83,12 +88,14 @@ When applying confirmed changes, say what changed and one key consequence. next_
                                 "y": {"type": ["number", "null"]},
                                 "z": {"type": ["number", "null"]},
                                 "payload": {"type": ["number", "null"]},
-                                "stiffness": {"type": ["number", "null"]},
+                                "application": {"type": ["string", "null"]},
+                                "accuracy": {"type": ["string", "null"]},
+                                "dynamics": {"type": ["string", "null"]},
                                 "duty_cycle": {"type": ["number", "null"]},
                                 "environment": {"type": ["string", "null"]},
                                 "temperature": {"type": ["string", "null"]},
                             },
-                            "required": ["x", "y", "z", "payload", "stiffness", "duty_cycle", "environment", "temperature"],
+                            "required": ["x", "y", "z", "payload", "application", "accuracy", "dynamics", "duty_cycle", "environment", "temperature"],
                             "additionalProperties": False,
                         },
                         "next_questions": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
